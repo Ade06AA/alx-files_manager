@@ -17,14 +17,22 @@ class DBClient{
       console.log(err);
     }
     this.connected = true;
-    this.colection = client.db(database).collection('documents');
+    this.db = client.db(database);
   }
   isAlive(){
     return this.connedted
   }
   async nbUsers(){
+    const users = this.db.collection('users');
+    const userL = await users.find({}).toArray();
+    return userL.length
   }
   async nbFiles(){
+    const files = this.db.collection('files');
+    const fileL = await files.find({}).toArray();
+    return fileL.length
   }
 }
 
+const dbClient = DBClient();
+module.exports = dbClient;
