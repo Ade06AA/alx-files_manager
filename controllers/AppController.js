@@ -23,3 +23,19 @@ export function GetStatus(req, res){
     }
   );
 }
+
+export function PostNew(req, res){
+  const email = req.data; /temp
+  const pass = req.data; //temp
+  if (!email){
+    res.status(400).json("Missing email");
+  }
+  if (!pass){
+    res.status(400).json("Missing password");
+  }
+  if (dbClient.findUser(email)){
+    res.status(400).json("Already exist");
+  }
+  res.status(201)
+    .json(dbClient.addUser(email, pass));
+}
