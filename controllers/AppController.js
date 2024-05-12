@@ -24,7 +24,7 @@ export function GetStatus(req, res){
   );
 }
 
-export function PostNew(req, res){
+export function NewUser(req, res){
   const email = req.data; /temp
   const pass = req.data; //temp
   if (!email){
