@@ -4,15 +4,14 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 
 class DBClient{
-  let connected = false;
+  connected = false;
   constructor(){
     const host = process.env.DB_HOST || 'localhost';
     const port = parseInt(process.env.DB_PORT || '27017');
     const database = process.env.DB_DATABASE || 'files_manager';
     const url = `mongodb://${host}:${port}`;
-    const client = await promisify(MongoClient.connect).bind(MongoClient)(url);
     try {
-      await client.connect();
+    	const client = promisify(MongoClient.connect).bind(MongoClient)(url);
       this.connected = true;
     } catch(err){
       this.connected = false;
@@ -48,7 +47,6 @@ class DBClient{
     const fCursor = await this.files.find({});
     return fCursor.count()
   }
-}
 async findUser(email){
   const uCursor = await this.users.find({"email": email});
   if (uCursor.count() === 0){
@@ -73,6 +71,7 @@ async addUser(email, pass){
     //"id": stat.writeErrors.index
     "id": stat.insertedId.toString()
   }
+}
 }
 
 const dbClient = DBClient();
