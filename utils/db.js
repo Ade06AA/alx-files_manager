@@ -9,7 +9,7 @@ class DBClient{
     const port = parseInt(process.env.DB_PORT || '27017');
     const database = process.env.DB_DATABASE || 'files_manager';
     const url = `mongodb://${host}:${port}`;
-    const client= await new MongoClient(url);
+    const client = await promisify(MongoClient.connect).bind(MongoClient)(url);
     try {
       await client.connect();
       this.connected = true;
