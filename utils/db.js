@@ -18,20 +18,30 @@ class DBClient{
     }
     this.connected = true;
     this.db = client.db(database);
+    this.users = this.db.collection('users');
+    this.files = this.db.collection('files');
   }
   isAlive(){
     return this.connedted
   }
   async nbUsers(){
-    const users = this.db.collection('users');
-    const userL = await users.find({}).toArray();
+    const userL = await this.users.find({}).toArray();
     return userL.length
   }
   async nbFiles(){
-    const files = this.db.collection('files');
-    const fileL = await files.find({}).toArray();
-    return fileL.length
+    const fCursor = await this.files.find({});
+    return fCursor.count()
   }
+}
+async findUser(email){
+  const uCursor = await this.users.find({"email": email});
+  if (uCursor.count() === 0){
+    return null
+  }
+  return uCursor.toArray()
+}
+async addUser(email, pass){
+  this.users.
 }
 
 const dbClient = DBClient();
