@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import process from 'process';
 import crypto from 'crypto';
+import { promisify } from 'util';
 
 class DBClient{
   let connected = false;
