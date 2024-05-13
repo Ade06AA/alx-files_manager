@@ -62,13 +62,15 @@ async addUser(email, pass){
     "email": email,
     "password": passHash
   });
-  if (!stat.ok){
+  //if (!stat.ok){
+  if (!stat.result.ok){
     // handle error
     return null //temp
   }
   return {
     "email": email,
-    "id": stat.writeErrors.index
+    //"id": stat.writeErrors.index
+    "id": stat.insertedId.toString()
   }
 }
 
