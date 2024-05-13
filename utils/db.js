@@ -24,9 +24,9 @@ class DBClient{
       validator: {
         $jsonSchema: {
           bsonType: "object",
-          : ["id"],
+          required: ["_id"],
           properties: {
-            id: {
+            _id: {
               bsonType: "int",
               autoIncrement: true
             }
