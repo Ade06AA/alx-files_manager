@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
 import process from 'process';
+import crypto from 'crypto';
 
 class DBClient{
   let connected = false;
@@ -41,7 +42,8 @@ async findUser(email){
   return uCursor.toArray()
 }
 async addUser(email, pass){
-  passHash = pass //temp
+  passHash = crypto.createHash('sha1')
+    .update(pass).digest('hex');
   const stat= this.users.insertOne({
     "email": email,
     "password": passHash
