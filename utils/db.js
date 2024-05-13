@@ -41,7 +41,19 @@ async findUser(email){
   return uCursor.toArray()
 }
 async addUser(email, pass){
-  this.users.
+  passHash = pass //temp
+  const stat= this.users.insertOne({
+    "email": email,
+    "password": passHash
+  });
+  if (!stat.ok){
+    // handle error
+    return null //temp
+  }
+  return {
+    "email": email,
+    "id": stat.writeErrors.index
+  }
 }
 
 const dbClient = DBClient();
