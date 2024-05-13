@@ -36,6 +36,10 @@ export function NewUser(req, res){
   if (dbClient.findUser(email)){
     res.status(400).json("Already exist");
   }
+  const addU = dbClient.addUser(email, pass);
+  if (!addU){
+    res.satus(400).json("Error while adding user");
+  }
   res.status(201)
-    .json(dbClient.addUser(email, pass));
+    .json(addU);
 }
