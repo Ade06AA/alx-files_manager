@@ -25,8 +25,8 @@ export function GetStatus(req, res){
 }
 
 export function NewUser(req, res){
-  const email = req.data; /temp
-  const pass = req.data; //temp
+  const email = req.body.email;
+  const pass = req.body.password;
   if (!email){
     res.status(400).json("Missing email");
   }
