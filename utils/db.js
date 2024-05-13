@@ -19,7 +19,21 @@ class DBClient{
     }
     this.connected = true;
     this.db = client.db(database);
-    this.users = this.db.collection('users');
+    this.users = this.db.collection("users", {
+      createCollection: true,
+      validator: {
+        $jsonSchema: {
+          bsonType: "object",
+          : ["id"],
+          properties: {
+            id: {
+              bsonType: "int",
+              autoIncrement: true
+            }
+          }
+        }
+      }
+    });
     this.files = this.db.collection('files');
   }
   isAlive(){
