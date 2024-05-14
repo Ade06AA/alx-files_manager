@@ -74,5 +74,5 @@ async addUser(email, pass){
 }
 }
 
-const dbClient = DBClient();
+const dbClient = new DBClient();
 module.exports = dbClient;
