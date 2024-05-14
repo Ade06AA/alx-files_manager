@@ -10,14 +10,12 @@ class DBClient{
     const port = parseInt(process.env.DB_PORT || '27017');
     const database = process.env.DB_DATABASE || 'files_manager';
     const url = `mongodb://${host}:${port}`;
-    try {
-    	const client = promisify(MongoClient.connect).bind(MongoClient)(url);
-      this.connected = true;
-    } catch(err){
-      this.connected = false;
-      console.log(err);
-    }
-    this.connected = true;
+    const client = new MongoClient(url, { "useUnifiedTopology": true });
+    client.connect((err, client) => {
+    
+    if (err) {console.log(client);}
+    this.indexReady = false
+    this.connected = client.isConnected();
     this.db = client.db(database);
     this.users = this.db.collection("users", {
       createCollection: true,
@@ -34,18 +32,23 @@ class DBClient{
         }
       }
     });
+    this.users.createIndex(
+      {"email":1},
+      {"unique": true},
+      ()=>{this.indexReady = true}
+    );
     this.files = this.db.collection('files');
+    });
   }
   isAlive(){
-    return this.connedted
+    return this.connected
   }
   async nbUsers(){
     const userL = await this.users.find({}).toArray();
     return userL.length
   }
   async nbFiles(){
-    const fCursor = await this.files.find({});
-    return fCursor.count()
+    return await this.files.countDocuments();
   }
 async findUser(email){
   const uCursor = await this.users.find({"email": email});
@@ -55,9 +58,16 @@ async findUser(email){
   return uCursor.toArray()
 }
 async addUser(email, pass){
-  passHash = crypto.createHash('sha1')
+  const passHash = crypto.createHash('sha1')
     .update(pass).digest('hex');
-  const stat= this.users.insertOne({
+  let count = 0;
+  while (!this.indexReady){
+    if (count > 20){
+      break;
+    }
+    count = count + 1;
+  }
+  const stat= await this.users.insertOne({
     "email": email,
     "password": passHash
   });

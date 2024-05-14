@@ -1,16 +1,18 @@
-import dbClient from '/utils/db';
-import redisClient from '/utils/redis';
+import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
 
 export function GetStats(req, res){
-  const fileN = dbClient.nbFiles();
-  const userN = dbClient.nbUsers();
-  res.status(200);
-  res.json(
-    {
-      "users": userN,
-      "files": filesN,
-    }
-  );
+  (async () => {
+    const fileN = await dbClient.nbFiles();
+    const userN = await dbClient.nbUsers();
+    res.status(200);
+    res.json(
+      {
+        "users": userN,
+        "files": fileN,
+      }
+    );
+  })();
 }
 export function GetStatus(req, res){
   const redisS = redisClient.isAlive();
@@ -28,18 +30,20 @@ export function NewUser(req, res){
   const email = req.body.email;
   const pass = req.body.password;
   if (!email){
-    res.status(400).json("Missing email");
+    res.status(400).json({"error": "Missing email"});
   }
   if (!pass){
-    res.status(400).json("Missing password");
+    res.status(400).json({"error": "Missing password"});
   }
-  if (dbClient.findUser(email)){
-    res.status(400).json("Already exist");
-  }
-  const addU = dbClient.addUser(email, pass);
-  if (!addU){
-    res.satus(400).json("Error while adding user");
-  }
-  res.status(201)
-    .json(addU);
+  dbClient.addUser(email, pass)
+    .then((addU) => {
+      res.status(201).json(addU);
+    }).catch((err) => {
+      if (err.code === 11000){
+        res.status(400).json({"error": "Already exist"});
+      }
+      else {
+        res.status(400).end();
+      }
+    });
 }

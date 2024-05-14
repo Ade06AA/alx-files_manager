@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   GetStatus, GetStats, NewUser
-} from '/controllers/AppController';
+} from '../controllers/AppController';
 
 const router = express.Router();
 
