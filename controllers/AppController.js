@@ -1,7 +1,7 @@
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
-export function GetStats(req, res){
+export function getStats(req, res){
   (async () => {
     const fileN = await dbClient.nbFiles();
     const userN = await dbClient.nbUsers();
@@ -14,7 +14,7 @@ export function GetStats(req, res){
     );
   })();
 }
-export function GetStatus(req, res){
+export function getStatus(req, res){
   const redisS = redisClient.isAlive();
   const dbS = dbClient.isAlive();
   res.status(200);
@@ -26,7 +26,7 @@ export function GetStatus(req, res){
   );
 }
 
-export function NewUser(req, res){
+export function getUser(req, res){
   const email = req.body.email;
   const pass = req.body.password;
   if (!email){

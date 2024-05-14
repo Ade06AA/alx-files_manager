@@ -26,8 +26,9 @@ class RedisClient{
     await promisify(this.client.SETEX).bind(this.client)(key, ex, val);
   }
 
-  async del(){
-    await promisify(this.client.DEL).bind(this.client)(key);
+  async del(key){
+    const count = await promisify(this.client.DEL).bind(this.client)(key);
+    return count
   }
 }
 const redisClient = new RedisClient()

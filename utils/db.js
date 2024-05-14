@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 import process from 'process';
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 import { promisify } from 'util';
 
 class DBClient{
@@ -50,16 +50,15 @@ class DBClient{
   async nbFiles(){
     return await this.files.countDocuments();
   }
-async findUser(email){
-  const uCursor = await this.users.find({"email": email});
+async findUser(user){
+  const uCursor = await this.users.find(user);
   if (uCursor.count() === 0){
     return null
   }
   return uCursor.toArray()
 }
 async addUser(email, pass){
-  const passHash = crypto.createHash('sha1')
-    .update(pass).digest('hex');
+  const passHash = createHash('sha1').update(pass).digest('hex');
   let count = 0;
   while (!this.indexReady){
     if (count > 20){
