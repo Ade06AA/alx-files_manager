@@ -19,16 +19,12 @@ import fs from 'fs';
  *   isPublic - file is public or not (default: false)
  */
 export function postUpload(req, res){
-  const sessionToken = req.headers["x-token"];
   const name = req.body.name;
   const acceptedType = ["file", "folder", "image"];
   const type = req.body.type;
   const data = req.body.data;
   const parentId = req.body.parentid || 0;
   const isPublic = (req.body.ispublic === "true") ? true : false;
-  if (!sessionToken){
-    res.status(401).json({"error": "Unauthorized"});
-  }
   if (!name){
     res.status(400).json({"error": "Missing name"});
   }
@@ -43,12 +39,8 @@ export function postUpload(req, res){
   let userId = null; // user uniq email
   let parentFile = null;
   (async ()=>{
-    try {
-      userId = await redisClient.get(`auth_${sessionToken}`);
-      if (!userId){
-        res.status(401).json({"error": "Unauthorized"});
-      }
-    } catch (error) {
+    const userId = req.userid;
+    if (!userId){
       res.status(401).json({"error": "Unauthorized"});
     }
     if (parentId != 0){
@@ -60,39 +52,39 @@ export function postUpload(req, res){
       if (parentFile.type != 'folder'){
         res.status(400).json({"error": "Parent is not a folder"});
       }
-      if (type === "folder"){
-        const { _id } = await dbClient.abbFile({
-          userId,
-          name,
-          type,
-          parentId,
-        });
-        res.status(201).json({
-          "id": _id, userId, name, type, isPublic, parentId
-        });
+    }
+    if (type === "folder"){
+      const { _id } = await dbClient.abbFile({
+        userId,
+        name,
+        type,
+        parentId,
+      });
+      res.status(201).json({
+        "id": _id, userId, name, type, isPublic, parentId
+      });
+    }
+    if (type === "file" || type === "image"){
+      const relative_path = process.env.FOLDER_PATH || "/tmp/files_manager";
+      const file_name = uuidv4();
+      const localPath = relative_path.split('/')
+        .push(file_name).join('/');
+      data = Buffer.from(data, 'base64');
+      if (type === "image"){
+        fs.writeFile(localPath, data);
       }
-      if (type === "file" || type === "image"){
-        const relative_path = process.env.FOLDER_PATH || "/tmp/files_manager";
-        const file_name = uuidv4();
-        const localPath = relative_path.split('/')
-          .push(file_name).join('/');
-        data = Buffer.from(data, 'base64');
-        if (type === "image"){
-          fs.writeFile(localPath, data);
-        }
-        if (type === "file"){
-          fs.writeFile(localPath, data.toString('utf8'));
-        }
-        const { _id } = await dbClient.abbFile({
-          userId,
-          name,
-          type,
-          parentId,
-          isPublic,
-          localPath
-        });
-        res.status(201).json({'`id': _id, userId, name, type, isPublic, parentId});
+      if (type === "file"){
+        fs.writeFile(localPath, data.toString('utf8'));
       }
+      const { _id } = await dbClient.abbFile({
+        userId,
+        name,
+        type,
+        parentId,
+        isPublic,
+        localPath
+      });
+      res.status(201).json({'`id': _id, userId, name, type, isPublic, parentId});
     }
   })();
 }
@@ -107,8 +99,33 @@ export function postUpload(req, res){
  * 
 */
 export function getShow(req, res){
-  let id = req.params.id;
-
+  const id = req.params.id;
+  const userId = req.userid;
+  if (!userId){
+    res.status(401).json({"error": "Unauthorized"});
+  }
+  let files;
+  (async ()=> {
+    try {
+      if (!id){
+        files = await dbClient.get({"userId": userId});
+      } else {
+        files = dbClient.get({"_id": id, "userId": userId});
+      }
+      if (!files){
+        res.code(404).json({"Not found"});
+      }
+      if (files.length == < 1){
+        res.code(404).json({"Not found"});
+      }
+      if (id){
+        files = files[0];
+      }
+      res.code(200).json(files);
+    }catch (err){
+      res.code(404).json({"Not found"});
+    }
+  })();
 }
 
 /**
@@ -120,4 +137,105 @@ export function getShow(req, res){
  * method - get
 */
 export function getIndex(req, res){
+  const parentId = req.query.parentid || 0;
+  const page = req.query.page || 0;
+  const userId = req.userid;
+  if (!userId){
+    res.status(401).json({"error": "Unauthorized"});
+  }
+  (async ()=> {
+    try{
+      const files = await dbClient.getFiles({ parentId }, {page, "limit": 20});
+    } catch (err){
+      res.status(401).json({"error": "Unauthorized"}); //temp
+    }
+  })();
+}
+
+export function putUnpublish(req, res){
+  const id = req.params.id;
+  const userId = req.userid;
+  if (!userId){
+    res.status(401).json({"error": "Unauthorized"});
+  }
+  let files;
+  (async ()=> {
+    try {
+      if (!id){
+        res.code(404).json({"Not found"});
+      } else {
+        files = dbClient.get({"_id": id, "userId": userId});
+      }
+      if (!files){
+        res.code(404).json({"Not found"});
+      }
+      if (files.length == < 1){
+        res.code(404).json({"Not found"});
+      }
+      files = files[0];
+      const update = await dbClient.updateFile(files._id, {"isPublic", false});
+      if (!update.acknowledged){
+        res.code(404).json({"Not found"}); // temp
+      }
+      res.code(200).json({...files, "isPublic": false});
+    }catch (err){
+      res.code(404).json({"Not found"});
+    }
+  })();
+}
+
+/**
+ * =========================================
+ * retrieve all users file documents for a 
+ * specific parentId and with pagination
+ * =======================================
+ * route - /files
+ * method - get
+*/
+export function getIndex(req, res){
+  const parentId = req.query.parentid || 0;
+  const page = req.query.page || 0;
+  const userId = req.userid;
+  if (!userId){
+    res.status(401).json({"error": "Unauthorized"});
+  }
+  (async ()=> {
+    try{
+      const files = await dbClient.getFiles({ parentId }, {page, "limit": 20});
+    } catch (err){
+      res.status(401).json({"error": "Unauthorized"}); //temp
+    }
+  })();
+}
+
+export function putPublish(req, res){
+  const id = req.params.id;
+  const userId = req.userid;
+  if (!userId){
+    res.status(401).json({"error": "Unauthorized"});
+  }
+  let files;
+  (async ()=> {
+    try {
+      if (!id){
+        res.code(404).json({"Not found"});
+      } else {
+        files = dbClient.get({"_id": id, "userId": userId});
+      }
+      if (!files){
+        res.code(404).json({"Not found"});
+      }
+      if (files.length == < 1){
+        res.code(404).json({"Not found"});
+      }
+      files = files[0];
+      const update = await dbClient.updateFile(files._id, {"isPublic", true});
+      if (!update.acknowledged){
+        res.code(404).json({"Not found"}); // temp
+      }
+      res.code(200).json({...files, "isPublic": true});
+    }catch (err){
+      res.code(404).json({"Not found"});
+    }
+  })();
 }

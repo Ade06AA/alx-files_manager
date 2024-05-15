@@ -12,32 +12,30 @@ class DBClient{
     const url = `mongodb://${host}:${port}`;
     const client = new MongoClient(url, { "useUnifiedTopology": true });
     client.connect((err, client) => {
-    
-    if (err) {console.log(client);}
-    this.indexReady = false
-    this.connected = client.isConnected();
-    this.db = client.db(database);
-    this.users = this.db.collection("users", {
-      createCollection: true,
-      validator: {
-        $jsonSchema: {
-          bsonType: "object",
-          required: ["_id"],
-          properties: {
-            _id: {
-              bsonType: "int",
-              autoIncrement: true
+      if (err) {console.log(client);
+      }
+      this.indexReady = false
+      this.connected = client.isConnected();
+      this.db = client.db(database);
+      this.users = this.db.collection("users", {
+        createCollection: true,
+        validator: {
+          $jsonSchema: {
+            bsonType: "object",
+            required: ["_id", "email"],
+            properties: {
+              _id: {
+                bsonType: "int",
+                autoIncrement: true
+              }
+              email: {
+                bsonType: "string",
+                unique: true
+              }
             }
           }
         }
-      }
-    });
-    this.users.createIndex(
-      {"email":1},
-      {"unique": true},
-      ()=>{this.indexReady = true}
-    );
-    this.files = this.db.collection('files');
+      });
     });
   }
   isAlive(){
@@ -81,12 +79,38 @@ class DBClient{
       "id": stat.insertedId.toString()
     }
   }
-  async findFile(file){
-    const uCursor = await this.files.find(file);
+  async findFile(filter, pagination){
+    let uCursor;
+    if (pagination){
+      const {page, limit} = pagination;
+      uCursor = await this.files.aggregate([
+        {
+          $match : {filter}
+        },
+        {
+          $skip: page * 20
+        },
+        {
+          $limit: 20
+        }
+      ]);
+    } else {
+      uCursor = await this.files.find(filter);
+    }
     if (uCursor.count() === 0){
       return []
     }
     return uCursor.toArray()
+  }
+
+  async updateFile(id, newVal){
+    const ans = await this.files.updateOne(
+      {"_id": id},
+      {
+        $set : newVal
+      }
+    );
+    return ans
   }
   async addFile(fileOBJ){
     const fileStat = await this.files.insertOne(fileOBJ);

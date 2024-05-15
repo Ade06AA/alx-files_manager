@@ -18,12 +18,18 @@ app.use(cookie_parser());
 // user session authentication
 app.use((req, res, next) => {
   if (NeedsAuth(req.path)){
+    const sessionToken = req.headers["x-token"];
+    if (!sessionToken){
+          res.status(401).json({ "error": "Unauthorized"});
+    }
     (async ()=>{
       try {
-        userId = await redisClient.get(`auth_${sessionToken}`);
+        const userId = await redisClient.get(`auth_${sessionToken}`);
         if (!userId){
           res.status(401).json({"error": "Unauthorized"});
         }
+        req.userid = userId;
+        next();
       } catch (error) {
         res.status(401).json({"error": "Unauthorized"});
       }
@@ -34,7 +40,9 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json()); // allow access to the res body object
+
 app.use('/', routes);
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
-})
+});

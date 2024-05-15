@@ -40,55 +40,35 @@ export function getConnect(req, res){
 }
 
 export function getDisconnect(req, res){
-  const sessionToken = req.headers["x-token"];
-  if (!sessionToken){
-        res.status(401).json({ "error": "Unauthorized"});
-  }
-  const key = `auth_${sessionToken}`;
-  redisClient.get(`auth_${sessionToken}`)
-    .then((email) => {
-      if (!email){
+  const _id = req.userid;
+  if (!_id){
+    res.status(401).json({ "error": "Unauthorized"});
+  dbClient.findUser({"_id": _id})
+    .then((user)=>{
+      if (!user){
         res.status(401).json({ "error": "Unauthorized"});
       }
-      dbClient.findUser({"email": email})
-        .then((user)=>{
-          if (!user){
-            res.status(401).json({ "error": "Unauthorized"});
-          }
-          redisClient.del(`auth_${sessionToken}`)
-            .then((count)=>{
-              res.status(204).end();
-            });
-        }).catch(()=>{
-            res.status(401).json({ "error": "Unauthorized"});
+      redisClient.del(`auth_${sessionToken}`)
+        .then((count)=>{
+          res.status(204).end();
         });
+    }).catch(()=>{
+        res.status(401).json({ "error": "Unauthorized"});
     });
 }
 
 export function getMe(req, res){
-  const sessionToken = req.headers["x-token"];
-  if (!sessionToken){
-        res.status(401).json({ "error": "Unauthorized"});
-  }
-  const key = `auth_${sessionToken}`;
-  redisClient.get(`auth_${sessionToken}`)
-    .then((_id) => {
-      if (!_id){
+  const _id = req.userid;
+  dbClient.findUser({"_id": _id})
+    .then((user)=>{
+      if (!user){
         res.status(401).json({ "error": "Unauthorized"});
       }
-      dbClient.findUser({"_id": _id})
-        .then((user)=>{
-          if (!user){
-            res.status(401).json({ "error": "Unauthorized"});
-          }
-          if (user.length !> 0){
-            res.status(401).json({ "error": "Unauthorized"});
-          }
-          res.status(200).json({"id": user[0]._id, "email": user[0].email});
-        }).catch(()=>{
-            res.end();
-        });
-    }).catch((err) => {
-      res.status(401).json({ "error": "Unauthorized"});
+      if (user.length !> 0){
+        res.status(401).json({ "error": "Unauthorized"});
+      }
+      res.status(200).json({"id": user[0]._id, "email": user[0].email});
+    }).catch(()=>{
+        res.end();
     });
 }
