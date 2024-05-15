@@ -12,12 +12,24 @@ const NeedsAuth = (path) => {
   }
   return true
 };
-
+const notSpecial = (req) => {
+  // to ignoref GET /files/:id/data
+  if (req.method != 'GET'){
+    return true
+  }
+  let parts = req.path.split('/');
+  if (parts.length == 4){
+    if (parts[1] === 'files' and parts[-1] === 'data'){
+      return false
+    }
+  }
+  return true
+};
 app.use(cookie_parser());
 
 // user session authentication
 app.use((req, res, next) => {
-  if (NeedsAuth(req.path)){
+  if (NeedsAuth(req.path) && notSpecial(req)){
     const sessionToken = req.headers["x-token"];
     if (!sessionToken){
           res.status(401).json({ "error": "Unauthorized"});
