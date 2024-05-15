@@ -14,6 +14,10 @@ export function getStats(req, res){
     );
   })();
 }
+
+/**
+ * method - get 
+**/
 export function getStatus(req, res){
   const redisS = redisClient.isAlive();
   const dbS = dbClient.isAlive();
@@ -26,6 +30,12 @@ export function getStatus(req, res){
   );
 }
 
+/**
+ * method - post
+ * required:
+ *   email: user email
+ *   password: user password
+**/
 export function getUser(req, res){
   const email = req.body.email;
   const pass = req.body.password;

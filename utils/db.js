@@ -50,37 +50,53 @@ class DBClient{
   async nbFiles(){
     return await this.files.countDocuments();
   }
-async findUser(user){
-  const uCursor = await this.users.find(user);
-  if (uCursor.count() === 0){
-    return null
-  }
-  return uCursor.toArray()
-}
-async addUser(email, pass){
-  const passHash = createHash('sha1').update(pass).digest('hex');
-  let count = 0;
-  while (!this.indexReady){
-    if (count > 20){
-      break;
+  async findUser(user){
+    const uCursor = await this.users.find(user);
+    if (uCursor.count() === 0){
+      return []
     }
-    count = count + 1;
+    return uCursor.toArray()
   }
-  const stat= await this.users.insertOne({
-    "email": email,
-    "password": passHash
-  });
-  //if (!stat.ok){
-  if (!stat.result.ok){
-    // handle error
-    return null //temp
+  async addUser(email, pass){
+    const passHash = createHash('sha1').update(pass).digest('hex');
+    let count = 0;
+    while (!this.indexReady){
+      if (count > 20){
+        break;
+      }
+      count = count + 1;
+    }
+    const stat= await this.users.insertOne({
+      "email": email,
+      "password": passHash
+    });
+    //if (!stat.ok){
+    if (!stat.result.ok){
+      // handle error
+      return null //temp
+    }
+    return {
+      "email": email,
+      //"id": stat.writeErrors.index
+      "id": stat.insertedId.toString()
+    }
   }
-  return {
-    "email": email,
-    //"id": stat.writeErrors.index
-    "id": stat.insertedId.toString()
+  async findFile(file){
+    const uCursor = await this.files.find(file);
+    if (uCursor.count() === 0){
+      return []
+    }
+    return uCursor.toArray()
   }
-}
+  async addFile(fileOBJ){
+    const fileStat = await this.files.insertOne(fileOBJ);
+    if (!fileStat){
+      return null
+    }
+    console.log(fileStat.ops);
+    console.log("is the object returnwed correct");
+    return fileStat.ops
+  }
 }
 
 const dbClient = new DBClient();
