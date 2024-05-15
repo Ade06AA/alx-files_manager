@@ -107,6 +107,8 @@ export function postUpload(req, res){
  * 
 */
 export function getShow(req, res){
+  let id = req.params.id;
+
 }
 
 /**

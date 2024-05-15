@@ -5,8 +5,34 @@ import cookie_parser from 'cookie-parser';
 
 const app = express();
 const port = process.env.PORT || 5000;
+const NoAuth = ["/status", "/stats", "/users", "/connect"];
+const NeedsAuth = (path) => {
+  if (NoAuth.includes(path)){
+    return false
+  }
+  return true
+};
 
-app.use(cookie_parser())
+app.use(cookie_parser());
+
+// user session authentication
+app.use((req, res, next) => {
+  if (NeedsAuth(req.path)){
+    (async ()=>{
+      try {
+        userId = await redisClient.get(`auth_${sessionToken}`);
+        if (!userId){
+          res.status(401).json({"error": "Unauthorized"});
+        }
+      } catch (error) {
+        res.status(401).json({"error": "Unauthorized"});
+      }
+    })();
+  } else{
+    next();
+  }
+});
+
 app.use(express.json()); // allow access to the res body object
 app.use('/', routes);
 app.listen(port, () => {
