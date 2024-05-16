@@ -120,41 +120,17 @@ export function getShow(req, res){
         files = dbClient.findFile({"_id": id, "userId": userId});
       }
       if (!files){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
-      if (files.length == < 1){
-        res.status(404).json({"Not found"});
+      if (files.length != 1){
+        res.status(404).json({"error": "Not found"});
       }
       if (id){
         files = files[0];
       }
       res.status(200).json(files);
     }catch (err){
-      res.status(404).json({"Not found"});
-    }
-  })();
-}
-
-/**
- * =========================================
- * retrieve all users file documents for a 
- * specific parentId and with pagination
- * =======================================
- * route - /files
- * method - get
-*/
-export function getIndex(req, res){
-  const parentId = req.query.parentid || 0;
-  const page = req.query.page || 0;
-  const userId = req.userid;
-  if (!userId){
-    res.status(401).json({"error": "Unauthorized"});
-  }
-  (async ()=> {
-    try{
-      const files = await dbClient.findFile({ parentId }, {page, "limit": 20});
-    } catch (err){
-      res.status(401).json({"error": "Unauthorized"}); //temp
+      res.status(404).json({"error": "Not found"});
     }
   })();
 }
@@ -169,24 +145,24 @@ export function putUnpublish(req, res){
   (async ()=> {
     try {
       if (!id){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       } else {
         files = dbClient.findFile({"_id": id, "userId": userId});
       }
       if (!files){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       if (files.length != 1){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       files = files[0];
-      const update = await dbClient.updateFile(files._id, {"isPublic", false});
+      const update = await dbClient.updateFile(files._id, {"isPublic": false});
       if (!update.acknowledged){
-        res.status(404).json({"Not found"}); // temp
+        res.status(404).json({"error": "Not found"}); // temp
       }
       res.status(200).json({...files, "isPublic": false});
     }catch (err){
-      res.status(404).json({"Not found"});
+      res.status(404).json({"error": "Not found"});
     }
   })();
 }
@@ -226,24 +202,24 @@ export function putPublish(req, res){
   (async ()=> {
     try {
       if (!id){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       } else {
         files = await dbClient.findFile({"_id": id, "userId": userId});
       }
       if (!files){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       if (files.length != 1){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       files = files[0];
-      const update = await dbClient.updateFile(files._id, {"isPublic", true});
+      const update = await dbClient.updateFile(files._id, {"isPublic": true});
       if (!update.acknowledged){
-        res.status(404).json({"Not found"}); // temp
+        res.status(404).json({"error": "Not found"}); // temp
       }
       res.status(200).json({...files, "isPublic": true});
     }catch (err){
-      res.status(404).json({"Not found"});
+      res.status(404).json({"error": "Not found"});
     }
   })();
 }
@@ -274,10 +250,10 @@ export function getFile(req, res){
         */
       files = await dbClient.get({"_id": id});
       if (!files){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       if (files.length != 1){
-        res.status(404).json({"Not found"});
+        res.status(404).json({"error": "Not found"});
       }
       let file = files[0];
       if (file.isPrivate === true && file.userId != id){
@@ -296,7 +272,7 @@ export function getFile(req, res){
       res.setHeader('Content-Type', contentType(file.name) || 'text/plain; charset=utf-8');
       res.status(200).sendFile(path);
     }catch (err){
-      res.status(404).json({"Not found"});
+      res.status(404).json({"error": "Not found"});
     }
   })();
 }

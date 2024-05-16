@@ -1,4 +1,5 @@
 import dbClient from '../utils/db';
+import { ObjectId } from 'mongodb';
 import redisClient from '../utils/redis';
 import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
@@ -43,16 +44,20 @@ export function getDisconnect(req, res){
   const _id = req.userid;
   if (!_id){
     res.status(401).json({ "error": "Unauthorized"});
+    return
+  }
   dbClient.findUser({"_id": _id})
     .then((user)=>{
       if (!user){
         res.status(401).json({ "error": "Unauthorized"});
+        return
       }
-      redisClient.del(`auth_${sessionToken}`)
+      redisClient.del(`auth_${req.headers["x-token"]}`)
         .then((count)=>{
           res.status(204).end();
+          return
         });
-    }).catch(()=>{
+    }).catch((err)=>{
         res.status(401).json({ "error": "Unauthorized"});
     });
 }
@@ -61,14 +66,12 @@ export function getMe(req, res){
   const _id = req.userid;
   dbClient.findUser({"_id": _id})
     .then((user)=>{
-      if (!user){
+      if (user.length <= 0){
         res.status(401).json({ "error": "Unauthorized"});
-      }
-      if (user.length !> 0){
-        res.status(401).json({ "error": "Unauthorized"});
+        return
       }
       res.status(200).json({"id": user[0]._id, "email": user[0].email});
-    }).catch(()=>{
-        res.end();
+    }).catch((err)=>{
+       res.status(400).end();
     });
 }

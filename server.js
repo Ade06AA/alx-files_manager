@@ -1,7 +1,9 @@
 import express from 'express';
+import { ObjectId } from 'mongodb';
 import process from 'process';
 import routes from './routes/index';
 import cookie_parser from 'cookie-parser';
+import redisClient from './utils/redis';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -19,7 +21,7 @@ const notSpecial = (req) => {
   }
   let parts = req.path.split('/');
   if (parts.length == 4){
-    if (parts[1] === 'files' and parts[-1] === 'data'){
+    if (parts[1] === 'files'&& parts[-1] === 'data'){
       return false
     }
   }
@@ -32,18 +34,21 @@ app.use((req, res, next) => {
   if (NeedsAuth(req.path) && notSpecial(req)){
     const sessionToken = req.headers["x-token"];
     if (!sessionToken){
-          res.status(401).json({ "error": "Unauthorized"});
+       res.status(401).json({ "error": "Unauthorized"});
+      return
     }
+
     (async ()=>{
       try {
         const userId = await redisClient.get(`auth_${sessionToken}`);
         if (!userId){
           res.status(401).json({"error": "Unauthorized"});
+          return
         }
-        req.userid = userId;
+        req.userid = ObjectId(userId);
         next();
       } catch (error) {
-        res.status(401).json({"error": "Unauthorized"});
+        res.status(401).json({"error": "Unauthorizediiii"}); // temp
       }
     })();
   } else{

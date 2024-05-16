@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import process from 'process';
 import { createHash } from 'crypto';
 import { promisify } from 'util';
@@ -17,17 +17,14 @@ class DBClient{
       this.indexReady = false
       this.connected = client.isConnected();
       this.db = client.db(database);
+      this.files = this.db.collection("files");
       this.users = this.db.collection("users", {
         createCollection: true,
         validator: {
           $jsonSchema: {
             bsonType: "object",
-            required: ["_id", "email"],
+            required: ["email"],
             properties: {
-              _id: {
-                bsonType: "int",
-                autoIncrement: true
-              }
               email: {
                 bsonType: "string",
                 unique: true
@@ -48,7 +45,7 @@ class DBClient{
   async nbFiles(){
     return await this.files.countDocuments();
   }
-  async findUser(user){
+  async findUser(user){ 
     const uCursor = await this.users.find(user);
     if (uCursor.count() === 0){
       return []
@@ -117,8 +114,6 @@ class DBClient{
     if (!fileStat){
       return null
     }
-    console.log(fileStat.ops);
-    console.log("is the object returnwed correct");
     return fileStat.ops
   }
 }
