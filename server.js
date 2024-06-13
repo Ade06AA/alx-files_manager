@@ -1,5 +1,4 @@
 import express from 'express';
-import { ObjectId } from 'mongodb';
 import process from 'process';
 import routes from './routes/index';
 import cookie_parser from 'cookie-parser';
@@ -45,7 +44,7 @@ app.use((req, res, next) => {
           res.status(401).json({"error": "Unauthorized"});
           return
         }
-        req.userid = ObjectId(userId);
+        req.userid = userId;
         next();
       } catch (error) {
         res.status(401).json({"error": "Unauthorizediiii"}); // temp

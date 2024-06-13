@@ -3,6 +3,48 @@ import process from 'process';
 import { createHash } from 'crypto';
 import { promisify } from 'util';
 
+function convertIdToStr(obj){
+  try {
+    if (obj.hasOwnProperty('_id')){
+      obj._id = obj._id.toString()
+    }
+    if (obj.hasOwnProperty('userId')){
+      obj.userId = obj.userId.toString()
+    }
+    if (obj.hasOwnProperty('parentId')){
+      if (obj.parentId != '0'){
+        obj.parentId = obj.parentId.toString()
+      }
+    }
+  } catch (err){
+    console.log(err)
+  }
+  return obj
+}
+
+function convertIdToObj(obj){
+  console.log("2r4c3n4tc3tt35t38")
+  console.log(obj)
+  try{
+    if (obj.hasOwnProperty('_id')){
+      obj._id = ObjectId(obj._id)
+    }
+    if (obj.hasOwnProperty('userId')){
+      obj.userId = ObjectId(obj.userId)
+    }
+    console.log(obj)
+    if (obj.hasOwnProperty('parentId')){
+      if (obj.parentId != '0'){
+        obj.parentId = ObjectId(obj.parentId)
+      }
+    }
+  } catch (err){
+    console.log(err)
+  }
+  console.log("2r4c3n4tc3tt35t38")
+  return obj
+}
+
 class DBClient{
   connected = false;
   constructor(){
@@ -18,21 +60,8 @@ class DBClient{
       this.connected = client.isConnected();
       this.db = client.db(database);
       this.files = this.db.collection("files");
-      this.users = this.db.collection("users", {
-        createCollection: true,
-        validator: {
-          $jsonSchema: {
-            bsonType: "object",
-            required: ["email"],
-            properties: {
-              email: {
-                bsonType: "string",
-                unique: true
-              }
-            }
-          }
-        }
-      });
+      this.users = this.db.collection("users");
+      this.users.createIndex({"email" : 1}, {'unique':true});
     });
   }
   isAlive(){
@@ -46,11 +75,14 @@ class DBClient{
     return await this.files.countDocuments();
   }
   async findUser(user){ 
-    const uCursor = await this.users.find(user);
+    const uCursor = await this.users.find(convertIdToObj(user));
     if (uCursor.count() === 0){
       return []
     }
-    return uCursor.toArray()
+
+    return uCursor.toArray().map(dict => {
+      convertIdToObj(dict)
+    });
   }
   async addUser(email, pass){
     const passHash = createHash('sha1').update(pass).digest('hex');
@@ -78,11 +110,13 @@ class DBClient{
   }
   async findFile(filter, pagination){
     let uCursor;
+    filter = convertIdToObj(filter)
     if (pagination){
       const {page, limit} = pagination;
+      console.log(page, limit)
       uCursor = await this.files.aggregate([
         {
-          $match : {filter}
+          $match : filter
         },
         {
           $skip: page * 20
@@ -92,29 +126,30 @@ class DBClient{
         }
       ]);
     } else {
-      uCursor = await this.files.find(filter);
-    }
-    if (uCursor.count() === 0){
-      return []
+      console.log("sdd", filter)
+      uCursor = await this.files.find(filter).map(dict => {
+        return  convertIdToStr(dict)
+      });
+      console.log("sdd", (await uCursor.toArray()))
     }
     return uCursor.toArray()
   }
 
   async updateFile(id, newVal){
     const ans = await this.files.updateOne(
-      {"_id": id},
+      {"_id": ObjectId(id)},
       {
-        $set : newVal
+        $set : convertIdToObj(newVal)
       }
     );
     return ans
   }
   async addFile(fileOBJ){
-    const fileStat = await this.files.insertOne(fileOBJ);
+    const fileStat = await this.files.insertOne(convertIdToObj(fileOBJ));
     if (!fileStat){
       return null
     }
-    return fileStat.ops
+    return fileStat.ops[0]._id
   }
 }
 

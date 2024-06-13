@@ -1,5 +1,4 @@
 import dbClient from '../utils/db';
-import { ObjectId } from 'mongodb';
 import redisClient from '../utils/redis';
 import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
