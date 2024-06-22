@@ -3,153 +3,148 @@ import process from 'process';
 import { createHash } from 'crypto';
 import { promisify } from 'util';
 
-function convertIdToStr(obj){
+function convertIdToStr(obj) {
   try {
-    if (obj.hasOwnProperty('_id')){
-      obj._id = obj._id.toString()
+    if (obj.hasOwnProperty('_id')) {
+      obj._id = obj._id.toString();
     }
-    if (obj.hasOwnProperty('userId')){
-      obj.userId = obj.userId.toString()
+    if (obj.hasOwnProperty('userId')) {
+      obj.userId = obj.userId.toString();
     }
-    if (obj.hasOwnProperty('parentId')){
-      if (obj.parentId != '0'){
-        obj.parentId = obj.parentId.toString()
+    if (obj.hasOwnProperty('parentId')) {
+      if (obj.parentId !== '0') {
+        obj.parentId = obj.parentId.toString();
       }
     }
-  } catch (err){
-    console.log(err)
+  } catch (err) {
+    console.log(err);
   }
-  return obj
+  return obj;
 }
 
-function convertIdToObj(obj){
-  console.log("2r4c3n4tc3tt35t38")
-  console.log(obj)
-  try{
-    if (obj.hasOwnProperty('_id')){
-      obj._id = ObjectId(obj._id)
+function convertIdToObj(obj) {
+  console.log('2r4c3n4tc3tt35t38');
+  console.log(obj);
+  try {
+    if (obj.hasOwnProperty('_id')) {
+      obj._id = ObjectId(obj._id);
     }
-    if (obj.hasOwnProperty('userId')){
-      obj.userId = ObjectId(obj.userId)
+    if (obj.hasOwnProperty('userId')) {
+      obj.userId = ObjectId(obj.userId);
     }
-    console.log(obj)
-    if (obj.hasOwnProperty('parentId')){
-      if (obj.parentId != '0'){
-        obj.parentId = ObjectId(obj.parentId)
+    console.log(obj);
+    if (obj.hasOwnProperty('parentId')) {
+      if (obj.parentId !== '0') {
+        obj.parentId = ObjectId(obj.parentId);
       }
     }
-  } catch (err){
-    console.log(err)
+  } catch (err) {
+    console.log(err);
   }
-  console.log("2r4c3n4tc3tt35t38")
-  return obj
+  console.log('2r4c3n4tc3tt35t38');
+  return obj;
 }
 
-class DBClient{
-  connected = false;
-  constructor(){
+class DBClient {
+  constructor() {
+    this.connected = false;
     const host = process.env.DB_HOST || 'localhost';
-    const port = parseInt(process.env.DB_PORT || '27017');
+    const port = parseInt(process.env.DB_PORT || '27017', null);
     const database = process.env.DB_DATABASE || 'files_manager';
     const url = `mongodb://${host}:${port}`;
-    const client = new MongoClient(url, { "useUnifiedTopology": true });
+    const client = new MongoClient(url, { useUnifiedTopology: true });
     client.connect((err, client) => {
-      if (err) {console.log(client);
-      }
-      this.indexReady = false
+      if (err) console.log(client);
+      this.indexReady = false;
       this.connected = client.isConnected();
       this.db = client.db(database);
-      this.files = this.db.collection("files");
-      this.users = this.db.collection("users");
-      this.users.createIndex({"email" : 1}, {'unique':true});
+      this.files = this.db.collection('files');
+      this.users = this.db.collection('users');
+      this.users.createIndex({ email: 1 }, { unique: true });
     });
   }
-  isAlive(){
-    return this.connected
+  isAlive() {
+    return this.connected;
   }
-  async nbUsers(){
+  async nbUsers() {
     const userL = await this.users.find({}).toArray();
-    return userL.length
+    return userL.length;
   }
-  async nbFiles(){
-    return await this.files.countDocuments();
+  async nbFiles() {
+    return this.files.countDocuments();
   }
-  async findUser(user){ 
+  async findUser(user) {
     const uCursor = await this.users.find(convertIdToObj(user));
-    if (uCursor.count() === 0){
-      return []
+
+    if (uCursor.count() === 0) {
+      return [];
     }
 
-    return uCursor.toArray().map(dict => {
-      convertIdToObj(dict)
-    });
+    return uCursor.toArray().map((dict) => convertIdToObj(dict));
   }
-  async addUser(email, pass){
+  async addUser(email, pass) {
     const passHash = createHash('sha1').update(pass).digest('hex');
     let count = 0;
-    while (!this.indexReady){
-      if (count > 20){
+    while (!this.indexReady) {
+      if (count > 20) {
         break;
       }
-      count = count + 1;
+      count += 1;
     }
-    const stat= await this.users.insertOne({
-      "email": email,
-      "password": passHash
+    const stat = await this.users.insertOne({
+      email,
+      password: passHash,
     });
-    //if (!stat.ok){
-    if (!stat.result.ok){
+    if (!stat.result.ok) {
       // handle error
-      return null //temp
+      return null; // temp
     }
     return {
-      "email": email,
-      //"id": stat.writeErrors.index
-      "id": stat.insertedId.toString()
-    }
+      email,
+      // 'id': stat.writeErrors.index
+      id: stat.insertedId.toString(),
+    };
   }
-  async findFile(filter, pagination){
+  async findFile(filter, pagination) {
     let uCursor;
-    filter = convertIdToObj(filter)
-    if (pagination){
-      const {page, limit} = pagination;
-      console.log(page, limit)
+    filter = convertIdToObj(filter);
+    if (pagination) {
+      const { page, limit } = pagination;
+      console.log(page, limit);
       uCursor = await this.files.aggregate([
         {
-          $match : filter
+          $match: filter,
         },
         {
-          $skip: page * 20
+          $skip: page * 20,
         },
         {
-          $limit: 20
-        }
+          $limit: 20,
+        },
       ]);
     } else {
-      console.log("sdd", filter)
-      uCursor = await this.files.find(filter).map(dict => {
-        return  convertIdToStr(dict)
-      });
-      console.log("sdd", (await uCursor.toArray()))
+      console.log('sdd', filter);
+      uCursor = await this.files.find(filter).map((dict) => convertIdToStr(dict));
+      console.log('sdd', (await uCursor.toArray()));
     }
-    return uCursor.toArray()
+    return uCursor.toArray();
   }
 
-  async updateFile(id, newVal){
+  async updateFile(id, newVal) {
     const ans = await this.files.updateOne(
-      {"_id": ObjectId(id)},
+      { _id: ObjectId(id) },
       {
-        $set : convertIdToObj(newVal)
-      }
+        $set: convertIdToObj(newVal),
+      },
     );
-    return ans
+    return ans;
   }
-  async addFile(fileOBJ){
+  async addFile(fileOBJ) {
     const fileStat = await this.files.insertOne(convertIdToObj(fileOBJ));
-    if (!fileStat){
-      return null
+    if (!fileStat) {
+      return null;
     }
-    return fileStat.ops[0]._id
+    return fileStat.ops[0]._id;
   }
 }
 
